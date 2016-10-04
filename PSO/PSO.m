@@ -1,0 +1,83 @@
+% Utilização: Entrada
+%	dim = dimensão do problema
+% 	nPop = tamanho da população
+% 	vInit = Intervalado de inicialização: [-32 32] por exemplo
+% 	nIter = numero de iterações
+%
+%	Saída:
+%   melhor = o melhor resultado da minimização
+%	pos = vetor n dimensional com as posições para o melhor resultado
+%	todos_melhores = histórico com o melhor de todas as iterações
+%
+%	A função objetivo deve ser editada no outro arquivo que está nesta mesma pasta
+%   com nome FuncaoObjetivo.m
+
+function [melhor pos todos_melhores] = PSO (dim,nPop,vInit,nInt)
+	w = 0.1;
+	c1 = 1;
+	c2 = 1;
+
+	swarm = randi ([vInit(1) vInit(2)],nPop,dim+1); %a ultima posicao contem o valor de fitness
+	swarm_melhores = zeros (nPop,dim+1);
+	velocidade = zeros(nPop,dim);
+	todos_melhores = zeros (nInt,1);
+	% inicializando fitness com zero
+	swarm (:,dim+1) = 0;
+	
+	[melhor vPos swarm] = fitness_init (swarm,nPop,dim);
+	swarm_melhores = swarm;
+	
+	for i=1:nInt
+		[melhor vPos swarm swarm_melhores] = fitness (swarm,swarm_melhores,melhor,vPos,nPop,dim);
+		velocidade = calc_velocidade (swarm,swarm_melhores,velocidade,melhor,vPos,nPop,dim,w,c1,c2);
+		swarm = posicao (swarm,velocidade,nPop,dim);
+		todos_melhores(i) = melhor;
+	end%for
+
+	pos = swarm_melhores(vPos,1:(dim));
+	plot(todos_melhores);
+	
+end %function
+
+% usada somente na inicialização para evitar comparações desnecessárias, tendo em vista que o problema pe grande
+% e qualquer otimização que se possa ganhar é bem vinda
+function [melhor vPos swarm] = fitness_init (swarm,nPop,dim)
+	melhor = funcaoObjetivo (swarm(1,:)); %somente para fins de inicialização
+	vPos = 1;
+	for i=1:nPop
+		fit = funcaoObjetivo (swarm(i,:));
+		if (fit < melhor)
+			melhor = fit;
+			vPos = i;
+		end%if
+		swarm(i,dim+1) = fit;
+	end %for
+end %function
+
+% ultizada dentro do for
+function [melhor vPos swarm swarm_melhores] = fitness (swarm,swarm_melhores,melhor,vPos,nPop,dim)
+	for i=1:nPop
+		swarm(i,dim+1) = funcaoObjetivo (swarm(i,:));
+		if (swarm_melhores(i,dim+1) > swarm(i,dim+1))
+			swarm_melhores(i,:) = swarm(i,:);
+			swarm_melhores(i,dim+1) = swarm(i,dim+1);						
+			if (swarm_melhores(i,dim+1) < melhor)
+				melhor = swarm_melhores(i,dim+1);
+				vPos = i;
+			end %if			
+		end%if
+	end %for
+end %function
+
+function velocidade = calc_velocidade (swarm,swarm_melhores,velocidade,melhor,vPos,nPop,dim,w,c1,c2)
+	for i=1:nPop
+		velocidade(i,:) = w*velocidade(i,:) + c1*rand*(swarm_melhores(i,1:dim)-swarm(i,1:dim)) + c2*rand*(swarm_melhores(vPos,1:dim)-swarm(i,1:dim));				
+	end% for
+end% function
+
+
+function swarm = posicao (swarm,velocidade,nPop,dim)
+	for i=1:nPop
+		swarm(i,1:dim) = swarm(i,1:dim) + velocidade(i,:);
+	end% for	
+end %posicao
